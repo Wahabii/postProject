@@ -5,12 +5,13 @@ module.exports = buildSchema(`
         _id: ID!
         marque: String!
         reference_model: String! 
-        annee:Int!
+        annee:String!
         puissance:String!
-        nombre_heures:String!
+        nombre_heures:Int!
         Etat_general:String!
         Pneus_avant:String!
         imgBytedata:String!
+      
    
     }
 
@@ -39,7 +40,7 @@ module.exports = buildSchema(`
         reference_model:String! 
         annee:Int!
         puissance:String!
-        nombre_heures:String!
+        nombre_heures:Int!
         Etat_general:String!
         Pneus_avant:String
         imgBytedata:String
@@ -47,11 +48,16 @@ module.exports = buildSchema(`
 
     type RootQuery {
         login(email: String!, password: String!): AuthData!
+        getPost(postId:ID!):Materiel!
+        postes(page:Int):Materiel!
+
     }
 
     type RootMutation {
-        createUser(userInput: UserInputData): User!
-        createPost(postInput: PostInputData): Materiel!
+        createUser(userInput: UserInputData):User!
+        createPost(postInput: PostInputData):Materiel!
+        updatePost(id: ID!, postInput: PostInputData):Materiel!
+        deletePost(id:ID!):Boolean
     }
 
     schema {

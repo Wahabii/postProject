@@ -5,7 +5,7 @@ const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const multer = require('multer');
 const graphqlHttp = require('express-graphql');
-
+const auth = require('./middleware/auth');
 const graphqlSchema = require('./graphql/schema');
 const graphqlResolver = require('./graphql/resolvers');
 
@@ -31,6 +31,8 @@ const fileFilter = (req, file, cb) => {
     cb(null, false);
   }
 };
+
+app.use(auth);
 
 // app.use(bodyParser.urlencoded()); // x-www-form-urlencoded <form>
 app.use(bodyParser.json()); // application/json
@@ -86,6 +88,6 @@ mongoose
   mongoose.connection.once('open',()=> 
   {console.log('connected with database ')})
   .then(result => {
-    app.listen(4000,()=> console.log('listen with port 4000'));
+    app.listen(7000,()=> console.log('listen with port 7000'));
   })
   .catch(err => console.log(err));

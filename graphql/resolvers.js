@@ -1,10 +1,11 @@
 const bcrypt = require('bcryptjs');
 const validator = require('validator');
 const jwt = require('jsonwebtoken');
-
+const {Materiel,validate}=require('../models/materiel');
 const User = require('../models/user');
+const isAuth =require('../middleware/auth');
 //const Post = require('../models/post');
-const Materiel=require('../models/materiel');
+//const Materiel=require('../models/materiel');
 module.exports = {
   createUser: async function({ userInput }, req) {
     //   const email = args.userInput.email;
@@ -57,69 +58,22 @@ module.exports = {
         email: user.email
       },
       'somesupersecretsecret',
-      { expiresIn: '1h' }
+      { expiresIn: '7d' }
     );
     return { token: token, userId: user._id.toString() };
   },
   createPost: async function({ postInput }, req) {
-    const errors = [];
-    if (
-      validator.isEmpty(postInput.marque) ||
-      !validator.isLength(postInput.marque, { min: 5 })
-    ) {
-      errors.push({ message: 'marque is invalid.' });
-    }
-    if (
-      validator.isEmpty(postInput.reference_model) ||
-      !validator.isLength(postInput.reference_model, { min: 5 })
-    ) {
-      errors.push({ message: 'reference_model is invalid.' });
-    }
-    if (
-      validator.isEmpty(postInput.puissance ||
-      !validator.isLength(postInput.puissance, { min: 5 })
-    )) {
-      errors.push({ message: 'puissance is invalid.' });
-    }
-    if (
-      validator.isEmpty(postInput.annee) ||
-      !validator.isLength(postInput.annee, { min: 10 })
-    ) {
-      errors.push({ message: 'annee is invalid.' });
-    }
-       if (
-      validator.isEmpty(postInput.Etat_general) ||
-      !validator.isLength(postInput.Etat_general, { min: 5 })
-    ) {
-      errors.push({ message: 'Etat_general is invalid.' });
-    }
-
-     if (
-      validator.isEmpty(postInput.nombre_heures) ||
-      !validator.isLength(postInput.nombre_heures, { min: 5 })
-    ) {
-      errors.push({ message: 'nombre_heures is invalid.' });
-    }
-    if (
-      validator.isEmpty(postInput.Pneus_avant) ||
-      !validator.isLength(postInput.Pneus_avant, { min: 5 })
-    ) {
-      errors.push({ message: 'Pneus_avant is invalid.' });
-    }
-     if (
-      validator.isEmpty(postInput.imgBytedata) ||
-      !validator.isLength(postInput.imgBytedata, { min: 5 })
-    ) {
-      errors.push({ message: ' imgBytedata is invalid.' });
-    }
-
-    if (errors.length > 0) {
-      const error = new Error('Invalid input.');
-      error.data = errors;
-      error.code = 422;
+   
+    if (req.isAuth) {
+      const error = new Error('Not authenticated!');
+      error.code = 401;
       throw error;
     }
-    const materiel= new Materiel({
+    const errors = [];
+    const {error} = validate(req.body);
+     if (error)
+      errors.push(error.details[0].message);
+      const materiel= new Materiel({
       marque: postInput.marque,
       reference_model:postInput.reference_model,
       annee:postInput.annee,
@@ -132,11 +86,101 @@ module.exports = {
 
     });
     const createdPost = await materiel.save();
-    // Add post to users' posts
     return {
       ...createdPost._doc,
       _id: createdPost._id.toString(),
       
     };
-  }
+  },
+
+
+  getPost : async function  ({postId}, req){
+    if (req.isAuth) {
+      const error = new Error('Not authenticated!');
+      error.code = 401;
+      throw error;
+    }
+    const materiel = await Materiel.findById(postId);
+    try {
+      if (!materiel) {
+        const error = new Error('Could not find post.');
+        error.statusCode = 404;
+        throw error;
+      }
+      return materiel;
+    } catch (err) {
+      if (!err.statusCode) {
+        err.statusCode = 500;
+      }
+      next(err);
+    }
+  },
+  deletePost: async function({ id }, req,res) {
+    if (req.isAuth) {
+      const error = new Error('Not authenticated!');
+      error.code = 401;
+      throw error;
+    }
+    const post = await Materiel.findById(id);
+    if (!post) {
+      const error = new Error('No post found!');
+      error.code = 404;
+      throw error;
+    }
+    
+     await Materiel.findByIdAndRemove(id);
+    
+  },
+  updatePost: async function({ id, postInput }, req) {
+    if (req.isAuth) {
+      const error = new Error('Not authenticated!');
+      error.code = 401;
+      throw error;
+    }
+    const post = await Materiel.findById(id);
+    if (!post) {
+      const error = new Error('No post found!');
+      error.code = 404;
+      throw error;
+    }
+    const errors = [];
+    const {error} = validate(req.body);
+     if (error)
+      errors.push(error.details[0].message);
+      const materiel= new Materiel({
+      marque: postInput.marque,
+      reference_model:postInput.reference_model,
+      annee:postInput.annee,
+      puissance:postInput.puissance,
+      nombre_heures:postInput.nombre_heures,
+      Etat_general:postInput.Etat_general,
+      Pneus_avant:postInput.Pneus_avant,
+      imgBytedata:postInput.imgBytedata
+ 
+
+    });
+    const createdPost = await materiel.save();
+    return {
+      ...createdPost._doc,
+      _id: createdPost._id.toString(),
+      
+    };
+  },
+  postes: async function({page}, req) {
+    if (req.isAuth) {
+      const error = new Error('Not authenticated!');
+      error.code = 401;
+      throw error;
+    }
+     while( page > 0 ){
+      const createdPosts = await Materiel.find();
+      return {
+        ...createdPosts._doc,
+     
+        
+      };
+     }
+   
+ 
+    }
 };
